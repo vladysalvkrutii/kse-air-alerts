@@ -16,9 +16,13 @@ def alerts():
 
 
 def known_at(alerts: pd.DataFrame, t: pd.Timestamp) -> pd.DataFrame:
-    """What an observer at time t would have: alerts started before t, ends only if <= t."""
+    """What an observer at time t would have: alerts started before t; an end only if its end
+    message arrived by t. `naive` alerts never got an end message (the dataset invents
+    start + 30 min afterwards), so their end is never observed. The naive flag itself is
+    hidden too: at t nobody knows an end message will never come."""
     k = alerts[alerts.started_at < t].copy()
-    k.loc[k.finished_at > t, "finished_at"] = pd.NaT
+    k.loc[(k.finished_at > t) | k.naive, "finished_at"] = pd.NaT
+    k["naive"] = False
     return k
 
 

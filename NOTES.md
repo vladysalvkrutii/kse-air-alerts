@@ -85,10 +85,29 @@ starts / at a running alert's true end) must make it fail. Plus an exact-boundar
 - Training window compared on validation: 8w 0.1600, **16w 0.1580**, 26w 0.1584, 40w 0.1591 (Brier).
   Short windows react to the trend but are noisy; the "since Dec 2025" window (40w) is slightly worse.
 - Beats the best baseline (persistence_calibrated 0.1663) in all 4 folds; within-region AUC 0.61 vs ≤0.54.
-- Treated as suspicious, checked: coefficients sensible (strongest = last-week activity; running alert in
-  a busy region lowers p), calibration good (0.04→0.04, 0.45→0.47, 0.93→0.95; slight under-prediction
+- Treated as suspicious, checked (on the version that still had interactions): coefficients sensible
+  (strongest = last-week activity; running alert in a busy region lowers p), calibration good (0.04→0.04, 0.45→0.47, 0.93→0.95; slight under-prediction
   mid-range due to rising trend), no single feature group dominates (each ablation costs ~0.0005–0.001).
 
 ### Failed idea
 - Interactions "recent activity × weekly busyness", added to model the sign flip: validation Brier
   0.1583 with vs 0.1580 without. Removed — region intercepts + last-week activity already cover it.
+
+### Leakage bug found by the user: invented end times of `naive` alerts
+- The "alert running at t" feature used `finished_at` for `naive` alerts, but that value is invented
+  later by the dataset (start + 30 min) because no end message ever arrived. A live observer at t would
+  see such an alert as still running. My earlier check (0.66% of flags change) measured the size, not
+  the legitimacy — it was leakage of a post-hoc value.
+- The leakage test had the same blind spot: it trusted any `finished_at <= t`. Tightened `known_at()`
+  to hide naive ends and the naive flag itself → test **failed** on the old code (every region looked
+  "active", because naive alerts since 2022 never closed).
+- Fix (real-time rule): only the region's latest start can be running; it ends when its end message
+  arrives (non-naive `finished_at <= t`) or when a new alert starts in the region (alerts never overlap).
+  Test passes again.
+- Validation after fix: logreg_16w 0.1571 (was 0.1580); 16w still best → **MODEL_TRAIN_WEEKS = 16**.
+  Score went slightly up, not down: the leak injected an invented state, not true future information.
+
+### Plan change
+Final test run today (Sun) instead of Monday; on Monday re-pin to the newest snapshot and re-run the
+identical pipeline (no code changes), record both. The rule is "no decisions after seeing test", not
+"run it once".

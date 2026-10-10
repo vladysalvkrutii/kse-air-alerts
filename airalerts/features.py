@@ -22,17 +22,27 @@ def _hourly_counts(alerts: pd.DataFrame, hours: pd.DatetimeIndex, regions) -> pd
 
 
 def _per_region_state(alerts: pd.DataFrame, times: pd.DatetimeIndex, regions):
-    """For each t, region: is an alert running at t, minutes it has run, hours since last start."""
+    """For each t, region: is an alert running at t, minutes it has run, hours since last start.
+
+    Real-time rule: the region's latest alert started before t is running unless its end message
+    arrived by t. `naive` alerts never got an end message (their finished_at is invented later),
+    so they count as running until the next start in the region. Alerts in a region never overlap
+    in this dataset, so a new start also closes any earlier alert.
+    """
     t = times.values
-    far = np.datetime64("2262-01-01")
     active, run_min, since = {}, {}, {}
     for r in regions:
-        g = alerts[alerts.region == r]
-        s = np.sort(g.started_at.values)
-        f = np.sort(g.finished_at.fillna(pd.Timestamp(far, tz="UTC")).values)
+        g = alerts[alerts.region == r].sort_values("started_at")
+        s = g.started_at.values
+        end_seen = g.finished_at.where(~g.naive).values      # NaT = no end message (yet/ever)
         n_started = np.searchsorted(s, t, side="left")      # starts strictly before t
-        n_ended = np.searchsorted(f, t, side="right")       # ends at or before t
-        is_active = (n_started - n_ended) > 0
+        last = np.maximum(n_started - 1, 0)
+        if len(s):
+            last_end = end_seen[last]
+            ended = ~np.isnat(last_end) & (last_end <= t)
+            is_active = (n_started > 0) & ~ended
+        else:
+            is_active = np.zeros(len(t), dtype=bool)
         if len(s):
             hrs = (t - s[np.maximum(n_started - 1, 0)]) / np.timedelta64(1, "h")
             hrs = np.where(n_started > 0, hrs, np.nan)   # no alert yet before t

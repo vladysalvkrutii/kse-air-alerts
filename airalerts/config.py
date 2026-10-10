@@ -34,4 +34,4 @@ FOLD_DAYS = 7
 
 # --- Model: training-window lengths compared on validation; the chosen one is used on test.
 TRAIN_WEEKS_GRID = [8, 16, 26, 40]   # 40 weeks ~ since the Dec 2025 switch to raion-level alerts
-MODEL_TRAIN_WEEKS = None             # set after looking at validation only
+MODEL_TRAIN_WEEKS = 16               # chosen on validation (lowest Brier), 2026-10-11
