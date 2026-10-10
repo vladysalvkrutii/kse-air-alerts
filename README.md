@@ -140,6 +140,7 @@ Two AI tools were used throughout the project, in two roles:
   - why the effect of a recent alert reversed in frontline regions. The answer, an alert already
     running at t blocks a new start, led to the "active alert" features.
 
-All decisions (target, horizon, training window, when to run the test) were mine. Other bugs (missing
+Final decisions (target, horizon, training window, when to run the test) were mine, usually after Claude
+Code laid out the options and gave a recommendation. Other bugs (missing
 features at the last hour, a baseline with missing forecasts) came up while running the pipeline and
 were fixed and recorded. See `NOTES.md` for the full trail.
