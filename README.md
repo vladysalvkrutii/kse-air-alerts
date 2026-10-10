@@ -126,6 +126,20 @@ NOTES.md                   decisions, failures, what changed and why
 
 ## How AI was used
 
-Built with Claude Code as the main engineering tool. All decisions (target, horizon, training window,
-when to run the test) were made by me; several bugs (including a leakage bug in how unended alerts were
-treated) were caught by questioning the AI's output. See `NOTES.md` for the full trail.
+Two AI tools were used throughout the project, in two roles:
+
+- **Claude Code: engineering.** It proposed options, wrote and ran the code, and showed real output
+  at every step.
+- **A separate Claude chat: reviewer, for the whole project, not just the start.** It helped me
+  write the kickoff prompt. After that I usually pasted Claude Code's answers into it to get a
+  second opinion, then went back to Claude Code with questions. Several of my key questions came
+  out of that review, including:
+  - whether the "alert running at t" feature leaked through the end times the dataset invents for
+    `naive` alerts. It did, and fixing it changed both the feature and the leakage test;
+  - making sure baseline scores were reported on validation, not on the test window;
+  - why the effect of a recent alert reversed in frontline regions. The answer, an alert already
+    running at t blocks a new start, led to the "active alert" features.
+
+All decisions (target, horizon, training window, when to run the test) were mine. Other bugs (missing
+features at the last hour, a baseline with missing forecasts) came up while running the pipeline and
+were fixed and recorded. See `NOTES.md` for the full trail.
