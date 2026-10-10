@@ -61,3 +61,34 @@ Volunteer-data checks:
 | seasonal_naive_168h | 0.3154 | 0.508 | −0.865 |
 
 Bar for the model: Brier < 0.1663 on validation.
+
+## 2026-10-11 (Sun) — features, leakage test, logistic regression
+
+### Checks on the "flipping persistence" effect (user's hypothesis: ongoing alert blocks new starts)
+- Confirmed in part: in the data a new alert **never** starts while one is running in the same region
+  (0.000 overlaps), and in every region P(new start | alert running at t) < P(new start | recent alert
+  already ended). E.g. Sumy 0.62 vs 0.74, Kyiv oblast 0.63 vs 0.75.
+- Not the whole story: in Sumy/Chernihiv the "nothing started in 3 h" state still has the highest rate.
+- `naive` (invented) end times barely matter: ignoring them changes the "active" flag in 0.66% of rows.
+
+### Features (all from information before t; `airalerts/features.py`)
+starts in last 1/3/6/24/168 h (log), hours since last start, alert running at t, minutes it has run,
+number of regions with a start in last 3 h / running now, Kyiv hour-of-day (sin/cos), region (one-hot).
+
+### Leakage test (`tests/test_no_leakage.py`)
+Features at t are computed (a) from the full data, (b) from only what was known at t (alerts started
+before t; end times after t blanked), (c) from known data + 500 fake future alerts and fake end times.
+All must be identical. The test also checks itself: two deliberately leaky features (peeking at future
+starts / at a running alert's true end) must make it fail. Plus an exact-boundary test of the target window.
+
+### Model: logistic regression, refit each fold
+- Training window compared on validation: 8w 0.1600, **16w 0.1580**, 26w 0.1584, 40w 0.1591 (Brier).
+  Short windows react to the trend but are noisy; the "since Dec 2025" window (40w) is slightly worse.
+- Beats the best baseline (persistence_calibrated 0.1663) in all 4 folds; within-region AUC 0.61 vs ≤0.54.
+- Treated as suspicious, checked: coefficients sensible (strongest = last-week activity; running alert in
+  a busy region lowers p), calibration good (0.04→0.04, 0.45→0.47, 0.93→0.95; slight under-prediction
+  mid-range due to rising trend), no single feature group dominates (each ablation costs ~0.0005–0.001).
+
+### Failed idea
+- Interactions "recent activity × weekly busyness", added to model the sign flip: validation Brier
+  0.1583 with vs 0.1580 without. Removed — region intercepts + last-week activity already cover it.

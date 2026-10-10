@@ -8,7 +8,7 @@ import sys
 
 import pandas as pd
 
-from airalerts import config, data, download, evaluate
+from airalerts import config, data, download, evaluate, features, model
 from airalerts.baselines import BASELINES
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -36,6 +36,20 @@ def main() -> None:
 
     preds = {name: evaluate.predict_walk_forward(fn, starts, y, args.final_test)
              for name, fn in BASELINES.items()}
+
+    if args.final_test:
+        assert config.MODEL_TRAIN_WEEKS, "choose MODEL_TRAIN_WEEKS on validation before testing"
+        grid = [config.MODEL_TRAIN_WEEKS]
+    else:
+        grid = config.TRAIN_WEEKS_GRID
+    first_fold = evaluate.folds(args.final_test)[0][0]
+    feat_times = y.loc[first_fold - pd.Timedelta(weeks=max(grid)):].dropna(how="all").index
+    feats = features.build_features(alerts, feat_times, list(y.columns))
+    print(f"[features] {feats.shape[0]:,} rows x {feats.shape[1]} cols, "
+          f"t in [{feat_times.min()}, {feat_times.max()}]")
+    for w in grid:
+        fn = model.make_logreg(feats, w)
+        preds[fn.model_name] = evaluate.predict_walk_forward(fn, starts, y, args.final_test)
     tab = evaluate.score_table(preds)
     print(f"\n=== {split} scores (pooled over folds) ===")
     print(tab.round(4).to_string())
