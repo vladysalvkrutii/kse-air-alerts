@@ -12,11 +12,15 @@ from . import config
 
 
 def folds(final_test: bool = False) -> list[tuple[pd.Timestamp, pd.Timestamp]]:
-    """(start, end) of forecast-time windows, end exclusive."""
-    if final_test:
-        last_t = config.DATA_END - pd.Timedelta(hours=config.HORIZON_H)
-        return [(config.TEST_START, last_t + pd.Timedelta(hours=1))]
+    """(start, end) of forecast-time windows, end exclusive.
+
+    Test uses the same weekly refits as validation (as a deployed model would be retrained);
+    the last test fold ends at the last t whose label window is fully observed."""
     step = pd.Timedelta(days=config.FOLD_DAYS)
+    if final_test:
+        end = config.DATA_END - pd.Timedelta(hours=config.HORIZON_H) + pd.Timedelta(hours=1)
+        starts = pd.date_range(config.TEST_START, end, freq=step, inclusive="left")
+        return [(s, min(s + step, end)) for s in starts]
     starts = [config.TEST_START - step * (config.VAL_FOLDS - k) for k in range(config.VAL_FOLDS)]
     return [(s, s + step) for s in starts]
 

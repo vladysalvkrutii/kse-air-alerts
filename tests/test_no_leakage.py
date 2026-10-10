@@ -53,6 +53,7 @@ def test_features_use_only_past(alerts, t):
     regions = sorted(alerts.region.unique())
     times = pd.DatetimeIndex([t])
     full = build_features(alerts, times, regions)
+    assert not full.isna().any().any(), "NaN features (NaN == NaN would hide a leak)"
     past_only = build_features(known_at(alerts, t), times, regions)
     pd.testing.assert_frame_equal(full, past_only)
     for seed in range(3):

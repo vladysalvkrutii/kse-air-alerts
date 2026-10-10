@@ -58,8 +58,8 @@ def _per_region_state(alerts: pd.DataFrame, times: pd.DatetimeIndex, regions):
 def build_features(alerts: pd.DataFrame, times: pd.DatetimeIndex, regions) -> pd.DataFrame:
     """Long frame indexed by (t, region). `times` must be whole hours (UTC)."""
     alerts = alerts[alerts.started_at < times.max()]  # nothing at/after the last t is ever needed
-    hours = pd.date_range(times.min() - pd.Timedelta(hours=max(LOOKBACKS_H)), times.max(),
-                          freq="h", inclusive="left")
+    # include times.max() itself: its row is never summed (shift(1) below) but must exist
+    hours = pd.date_range(times.min() - pd.Timedelta(hours=max(LOOKBACKS_H)), times.max(), freq="h")
     counts = _hourly_counts(alerts, hours, regions)
 
     wide = {}
