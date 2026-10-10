@@ -59,6 +59,16 @@ def main() -> None:
     tab.round(5).to_csv(out)
     print(f"\n[saved] {out}")
 
+    # calibration of the chosen model: when it says p, how often does it happen?
+    name = f"logreg_{config.MODEL_TRAIN_WEEKS}w"
+    if name in preds:
+        p = preds[name]
+        bins = pd.cut(p.p, [i / 10 for i in range(11)], include_lowest=True)
+        cal = p.groupby(bins, observed=True).agg(n=("y", "size"), mean_p=("p", "mean"), observed=("y", "mean"))
+        print(f"\n=== {split} calibration, {name} ===")
+        print(cal.round(3).to_string())
+        cal.round(4).to_csv(config.RESULTS_DIR / f"{split}_calibration.csv")
+
 
 if __name__ == "__main__":
     main()

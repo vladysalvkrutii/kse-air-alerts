@@ -63,6 +63,8 @@ def score(pred: pd.DataFrame) -> dict:
 
 def score_table(preds: dict[str, pd.DataFrame], reference: str = "climatology") -> pd.DataFrame:
     """Pooled scores plus Brier skill score vs the reference: 1 - brier/brier_ref (>0 = better)."""
+    missing = {name: int(p.p.isna().sum()) for name, p in preds.items() if p.p.isna().any()}
+    assert not missing, f"forecasts missing for some rows, comparison would be unfair: {missing}"
     rows = {name: score(p) for name, p in preds.items()}
     tab = pd.DataFrame(rows).T
     tab["bss_vs_" + reference] = 1 - tab.brier / tab.loc[reference, "brier"]

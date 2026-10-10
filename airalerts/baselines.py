@@ -67,8 +67,9 @@ def persistence_calibrated(starts, y, train_end, times):
     A stronger, probabilistic version of persistence."""
     tr = _train_labels(y, train_end)
     state_tr = recent_started(starts, H).reindex(tr.index)
-    p1 = tr.where(state_tr == 1).mean()
-    p0 = tr.where(state_tr == 0).mean()
+    # a state never seen in training (e.g. no alerts at all in a quiet region) -> region rate
+    p1 = tr.where(state_tr == 1).mean().fillna(tr.mean())
+    p0 = tr.where(state_tr == 0).mean().fillna(tr.mean())
     state = recent_started(starts, H).reindex(times)
     return state * p1 + (1 - state) * p0
 

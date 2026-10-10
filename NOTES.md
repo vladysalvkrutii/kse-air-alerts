@@ -111,3 +111,18 @@ starts / at a running alert's true end) must make it fail. Plus an exact-boundar
 Final test run today (Sun) instead of Monday; on Monday re-pin to the newest snapshot and re-run the
 identical pipeline (no code changes), record both. The rule is "no decisions after seeing test", not
 "run it once".
+
+### Final test (snapshot 7ccd436, run 2026-10-11)
+- Protocol decided before seeing test numbers: same weekly refits as validation (4 folds), 16w window.
+- First `--final-test` attempt **crashed** (no scores printed): features had NaN at the very last hour.
+  Off-by-one in the feature hour index; validation never reached that hour. The leakage test also missed
+  it, because NaN == NaN in the comparison. Fixed + test now asserts no NaN (verified it fails on old code).
+- Second attempt printed scores, but `persistence_calibrated` had 334 missing forecasts (Zakarpattia had
+  zero alerts in the 8-week fit window → P(y | recent alert) undefined → NaN), and the scorer silently
+  dropped those rows. Fixed with a fallback to the region rate; the scorer now **refuses** to compare
+  forecasters with missing rows. This changed a baseline after seeing test — disclosed here; it made the
+  baseline stronger (0.1933 → 0.1892), the model's score was unchanged.
+- Result: logreg_16w Brier **0.1762** vs best baseline persistence_calibrated 0.1892 (−6.9%) and
+  climatology 0.1902 (−7.4%). Wins in all 4 test weeks. Within-region AUC 0.57 (validation 0.62).
+- Test calibration: good above p=0.4; under-predicts at 0.1–0.3 (0.26 predicted vs 0.34 observed),
+  consistent with the rising alert frequency.
