@@ -10,8 +10,8 @@ RESULTS_DIR = ROOT / "results"
 # --- Data source: Vadimkin/ukrainian-air-raid-sirens-dataset, volunteer (eTryvoga) file.
 # Pinned to a commit so every run sees the same snapshot. To refresh: update both lines.
 DATA_REPO = "Vadimkin/ukrainian-air-raid-sirens-dataset"
-DATA_SHA = "7ccd4367b7057a4541ce109ca09cf1f0220f6a75"
-DATA_SNAPSHOT_UTC = pd.Timestamp("2026-10-10T05:01:45Z")  # commit time of DATA_SHA
+DATA_SHA = "bf0c323c78e3e4508721458797dcd38c95df13f3"
+DATA_SNAPSHOT_UTC = pd.Timestamp("2026-10-11T04:50:14Z")  # commit time of DATA_SHA
 DATA_FILE = "volunteer_data_en.csv"
 
 # Luhanska oblast is under a permanent alert (not in the data); Crimea is absent entirely.

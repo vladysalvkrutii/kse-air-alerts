@@ -126,3 +126,16 @@ identical pipeline (no code changes), record both. The rule is "no decisions aft
   climatology 0.1902 (−7.4%). Wins in all 4 test weeks. Within-region AUC 0.57 (validation 0.62).
 - Test calibration: good above p=0.4; under-predicts at 0.1–0.3 (0.26 predicted vs 0.34 observed),
   consistent with the rising alert frequency.
+
+## 2026-10-11 (Sun, later) — re-run on newest snapshot (the planned "Monday" step, done early)
+- Re-pinned to dataset commit `bf0c323` (2026-10-11 04:50 UTC). Only `DATA_SHA` / `DATA_SNAPSHOT_UTC`
+  changed; no code changes. All windows moved forward by 23 h:
+  validation 2026-08-15 04:00 → 2026-09-12 04:00, test 2026-09-12 04:00 → 2026-10-10 01:00 (last t).
+- Snapshot revision check, 7ccd436 vs bf0c323, alerts started before the old DATA_END: 115,593 rows
+  identical, 0 changed, 0 added or removed.
+- Tests: 6 passed.
+- Validation: logreg_16w 0.1593 vs persistence_calibrated 0.1683 (16w kept; nothing re-tuned).
+- Test: logreg_16w **0.1778** vs persistence_calibrated 0.1913 (−7.0%) and climatology 0.1927 (−7.7%).
+  Best in all 4 weeks: 6.2–7.6% better than the best baseline each week. Within-region AUC 0.588.
+  Calibration unchanged in shape: good above 0.4, under-predicts at 0.1–0.3 (0.26 → 0.34).
+- Previous run on 7ccd436 for comparison: 0.1762 vs 0.1892 (−6.9%). README now reports the newer run.

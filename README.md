@@ -17,9 +17,9 @@ next 3 hours, built and evaluated so that no forecast ever uses information from
 
 [Vadimkin/ukrainian-air-raid-sirens-dataset](https://github.com/Vadimkin/ukrainian-air-raid-sirens-dataset),
 `datasets/volunteer_data_en.csv` (eTryvoga volunteer channel, MIT license), pinned to commit
-`7ccd436` (2026-10-10 05:01 UTC). Columns: `region, started_at, finished_at, naive`, UTC, oblast level.
+`bf0c323` (2026-10-11 04:50 UTC). Columns: `region, started_at, finished_at, naive`, UTC, oblast level.
 
-- 115,790 alerts used, 2022-02-25 → 2026-10-09. 24 regions (Luhansk excluded: permanent alert not in the
+- 115,986 alerts used, 2022-02-25 → 2026-10-10. 24 regions (Luhansk excluded: permanent alert not in the
   data; Crimea not in the data).
 - The last 24 h of the snapshot are dropped: alerts still running at download time are not in the file.
 - **Why not the official data** in the same repo: it ends on 2026-09-07, as does the public feed of its
@@ -36,8 +36,8 @@ following week, like a deployed system would be retrained.
 
 | Window | Forecast times (UTC) | Used for |
 |---|---|---|
-| Validation | 2026-08-14 05:00 → 2026-09-11 05:00 (4 weekly folds) | all choices (features, training length) |
-| **Test** | 2026-09-11 05:00 → 2026-10-09 02:00 (4 weekly folds) | final numbers only (`--final-test`) |
+| Validation | 2026-08-15 04:00 → 2026-09-12 04:00 (4 weekly folds) | all choices (features, training length) |
+| **Test** | 2026-09-12 04:00 → 2026-10-10 01:00 (last forecast time; 4 weekly folds) | final numbers only (`--final-test`) |
 
 At each refit, a training example at time t' is used only if its label window `[t', t'+3h)` has closed
 before the fold starts, so no label from the future enters training.
@@ -62,21 +62,25 @@ in the region. The test checks itself with two deliberately leaky features, whic
 
 ## Results
 
-Test window (11 Sep – 9 Oct 2026, 16,080 region-hours, 48.6% positive):
+Test window (12 Sep – 10 Oct 2026, 16,080 region-hours, 49.2% positive):
 
 | Forecaster | Brier ↓ | Within-region AUC | Brier skill vs climatology |
 |---|---|---|---|
-| **Logistic regression (16 w)** | **0.1762** | **0.570** | **+7.4%** |
-| Calibrated persistence | 0.1892 | 0.492 | +0.5% |
-| Climatology (hour-of-day) | 0.1902 | 0.546 | 0 |
-| Base rate | 0.1909 | 0.486 | −0.4% |
-| Climatology (day-of-week × hour) | 0.1964 | 0.542 | −3.2% |
-| Seasonal naive 24 h | 0.3312 | 0.527 | −74% |
-| Seasonal naive 168 h | 0.3430 | 0.510 | −80% |
-| Persistence (raw 0/1) | 0.3515 | 0.502 | −85% |
+| **Logistic regression (16 w)** | **0.1778** | **0.588** | **+7.7%** |
+| Calibrated persistence | 0.1913 | 0.503 | +0.7% |
+| Climatology (hour-of-day) | 0.1927 | 0.551 | 0 |
+| Base rate | 0.1934 | 0.500 | −0.4% |
+| Climatology (day-of-week × hour) | 0.1988 | 0.546 | −3.2% |
+| Seasonal naive 24 h | 0.3325 | 0.532 | −73% |
+| Seasonal naive 168 h | 0.3458 | 0.510 | −79% |
+| Persistence (raw 0/1) | 0.3521 | 0.512 | −83% |
 
-The model has the best Brier score in each of the 4 test weeks (0.183 / 0.170 / 0.173 / 0.178 vs best
-baseline 0.197 / 0.185 / 0.185 / 0.190). Validation: 0.1571 vs 0.1663 for the best baseline.
+The model has the best Brier score in each of the 4 test weeks (0.183 / 0.169 / 0.174 / 0.186 vs best
+baseline 0.198 / 0.182 / 0.186 / 0.198, i.e. 6.2–7.6% better each week; 7.0% overall vs calibrated
+persistence). Validation: 0.1593 vs 0.1683 for the best baseline.
+
+These numbers are from a re-run of the identical pipeline on the newest snapshot. The first run, on
+snapshot `7ccd436` (test 11 Sep – 9 Oct), gave 0.1762 vs 0.1892 (−6.9%); see `NOTES.md`.
 
 Calibration on test (`results/test_calibration.csv`): accurate above 40% (predicted 0.65 → observed 0.66,
 0.94 → 0.94); under-predicts at 10–30% (0.26 → 0.34).
@@ -84,20 +88,21 @@ Calibration on test (`results/test_calibration.csv`): accurate above 40% (predic
 ## Limitations
 
 - **The gain is modest.** About 7% better Brier than the best baseline. Within a region the ranking signal
-  is weak (AUC 0.57 on test, 0.62 on validation). Most of the skill comes from "how active has this
+  is weak (AUC 0.59 on test, 0.62 on validation). Most of the skill comes from "how active has this
   region been in the last week" plus whether an alert is running right now.
 - **Under-prediction:** alert frequency has been rising, and a model trained on the last 16 weeks lags it.
 - **One label source:** eTryvoga volunteer data. It disagrees with official data in some regions; we
   cannot tell which one is right. Oblast level only (official alerts are mostly raion level since Dec 2025).
-- **Backtest vs live:** the snapshot is assumed to be what was known in real time. Checked only for one week
-  (3 Oct vs 10 Oct snapshots: no past row changed, one row added late).
-- **Not used:** text/Telegram/news features (out of time); neighbouring-region features.
+- **Backtest vs live:** the snapshot is assumed to be what was known in real time. Checked on three snapshots
+  (3 Oct vs 10 Oct: no past row changed, one row added late; 10 Oct vs 11 Oct: no change at all).
+- **Not used:** text/Telegram/news features and neighbouring-region features (see Future work: adding
+  them after the test was run would mean tuning on the test window).
 - The test window is only 4 weeks; small differences between baselines are within noise.
 
 ## Future work
 
 The current test window has been looked at, so any change below must be judged on validation and then
-on a **new** test window made only of data after this snapshot (after 2026-10-09). Re-using the current
+on a **new** test window made only of data after this snapshot (after 2026-10-10). Re-using the current
 window would be tuning on the test.
 
 - **Text features from Telegram:** Ukrainian Air Force (@kpszsu) statements and monitoring channels
