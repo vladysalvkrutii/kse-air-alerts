@@ -94,6 +94,27 @@ Calibration on test (`results/test_calibration.csv`): accurate above 40% (predic
 - **Not used:** text/Telegram/news features (out of time); neighbouring-region features.
 - The test window is only 4 weeks; small differences between baselines are within noise.
 
+## Future work
+
+The current test window has been looked at, so any change below must be judged on validation and then
+on a **new** test window made only of data after this snapshot (after 2026-10-09). Re-using the current
+window would be tuning on the test.
+
+- **Text features from Telegram:** Ukrainian Air Force (@kpszsu) statements and monitoring channels
+  (e.g. reported launches of drones or missiles), using only posts published before t. Telegram posts can
+  be edited or deleted later, so they must be archived as first published (or edited posts dropped);
+  otherwise a later edit leaks into an earlier forecast. The leakage test would cover these features too.
+- **Neighbouring regions:** activity in adjacent oblasts in the last hours (attacks move across regions).
+- **Fixing under-prediction:** recalibrate on the most recent weeks, or add faster-reacting trend features.
+- **Non-linear model** (e.g. gradient boosting), kept only if it beats logistic regression on validation.
+- **Second label source:** cross-check against alerts.in.ua (needs a token) or a revived official feed,
+  to measure how noisy the volunteer labels are; raion-level targets if fresh raion data becomes available.
+- **Other targets:** 1 h / 6 h / 12 h horizons, and a nationwide "mass attack" target
+  (≥ K regions under alert at once).
+- **Uncertainty:** confidence intervals for the Brier difference, e.g. by resampling whole weeks.
+- **Live check:** archive a dataset snapshot every day to confirm the backtest data equals what was known
+  in real time.
+
 ## How to run
 
 Windows / Python 3.12:
